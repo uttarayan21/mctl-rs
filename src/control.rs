@@ -5,8 +5,8 @@ use derive_more::Display;
 use std::{convert::TryFrom, str::FromStr};
 #[derive(Debug, Clone, Copy, Display, serde::Deserialize)]
 pub enum Player {
-    MPD,
-    MPRIS,
+    Mpd,
+    Mpris,
     Both,
     None,
 }
@@ -15,8 +15,8 @@ impl FromStr for Player {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_ascii_lowercase().as_str() {
-            "mpd" => Ok(Self::MPD),
-            "mpris" => Ok(Self::MPRIS),
+            "mpd" => Ok(Self::Mpd),
+            "mpris" => Ok(Self::Mpris),
             "both" => Ok(Self::Both),
             _ => Ok(Self::None),
         }
@@ -27,8 +27,8 @@ impl From<cli::ArgPlayer> for Player {
     fn from(player: cli::ArgPlayer) -> Self {
         match player {
             cli::ArgPlayer::Both => Self::Both,
-            cli::ArgPlayer::MPRIS => Self::MPRIS,
-            cli::ArgPlayer::MPD => Self::MPD,
+            cli::ArgPlayer::Mpris => Self::Mpris,
+            cli::ArgPlayer::Mpd => Self::Mpd,
         }
     }
 }
@@ -55,7 +55,7 @@ impl FromStr for Operation {
             "next" => Ok(Self::Next),
             "stop" => Ok(Self::Stop),
             "status" => Ok(Self::Status),
-            _ => Err(Error::new(ErrorKind::UnknownOperationError)),
+            _ => Err(Error::new(ErrorKind::UnknownOperation)),
         }
     }
 }
@@ -91,8 +91,8 @@ pub struct PlayerInfo {
 
 impl std::fmt::Display for PlayerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Player: {}\n", self.kind)?;
-        write!(f, "Title: {}\n", self.title)?;
+        writeln!(f, "Player: {}", self.kind)?;
+        writeln!(f, "Title: {}", self.title)?;
         if self.artists.len() > 1 {
             write!(f, "Artists: ")?;
         } else {
@@ -115,11 +115,11 @@ impl TryFrom<&mut mpd::client::Client> for PlayerInfo {
             .currentsong()?
             .unwrap_or_default()
             .title
-            .unwrap_or_default()
-            .to_string();
+            .unwrap_or_default();
+
         let artists = Vec::new();
         Ok(Self {
-            kind: Player::MPD,
+            kind: Player::Mpd,
             title,
             artists,
         })
@@ -133,13 +133,14 @@ impl TryFrom<&mut mpris::Player<'_>> for PlayerInfo {
         let title = metadata.title().unwrap_or_default().to_string();
         let artists = metadata.artists().unwrap_or(&Vec::new()).to_vec();
         Ok(Self {
-            kind: Player::MPRIS,
+            kind: Player::Mpris,
             title,
             artists,
         })
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct Control<'c> {
     mpdclient: Option<mpd::Client>,
@@ -169,20 +170,20 @@ impl<'c> Control<'c> {
         };
         let running: Player = match (mpdstatus, mprisstatus) {
             (mpd::status::State::Play, true) => Player::Both,
-            (mpd::status::State::Play, false) => Player::MPD,
-            (_, true) => Player::MPRIS,
+            (mpd::status::State::Play, false) => Player::Mpd,
+            (_, true) => Player::Mpris,
             (_, false) => Player::None,
         };
         Ok(running)
     }
     pub fn play(&mut self, player: Player) -> Result<(), Error> {
         match player {
-            Player::MPD => {
+            Player::Mpd => {
                 if let Some(mpdclient) = &mut self.mpdclient {
                     mpdclient.play()?;
                 }
             }
-            Player::MPRIS => {
+            Player::Mpris => {
                 if let Some(mprisclient) = &mut self.mprisclient {
                     mprisclient.play()?;
                 }
@@ -220,12 +221,12 @@ impl<'c> Control<'c> {
 
     pub fn next(&mut self, player: Player) -> Result<(), Error> {
         match player {
-            Player::MPD => {
+            Player::Mpd => {
                 if let Some(mpdclient) = &mut self.mpdclient {
                     mpdclient.next()?;
                 }
             }
-            Player::MPRIS => {
+            Player::Mpris => {
                 if let Some(mpristclient) = &mut self.mprisclient {
                     mpristclient.next()?;
                 }
@@ -244,12 +245,12 @@ impl<'c> Control<'c> {
     }
     pub fn prev(&mut self, player: Player) -> Result<(), Error> {
         match player {
-            Player::MPD => {
+            Player::Mpd => {
                 if let Some(mpdclient) = &mut self.mpdclient {
                     mpdclient.prev()?;
                 }
             }
-            Player::MPRIS => {
+            Player::Mpris => {
                 if let Some(mpristclient) = &mut self.mprisclient {
                     mpristclient.previous()?;
                 }
@@ -277,12 +278,12 @@ impl<'c> Control<'c> {
     }
     pub fn status(&mut self, player: Player) -> Result<(), Error> {
         match player {
-            Player::MPD => {
+            Player::Mpd => {
                 if let Some(mpdclient) = &mut self.mpdclient {
                     println!("{}", PlayerInfo::try_from(mpdclient)?);
                 }
             }
-            Player::MPRIS => {
+            Player::Mpris => {
                 if let Some(mprisclient) = &mut self.mprisclient {
                     println!("{}", PlayerInfo::try_from(mprisclient)?);
                 }

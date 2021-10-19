@@ -12,7 +12,7 @@ arch=("x86_64")
 provides=("mctl")
 conflicts=("mctl")
 source=("https://github.com/uttarayan21/mctl-rs/releases/download/v$pkgver/mctl-$pkgver-x86_64.tar.gz")
-sha256sums=("9a837db16fb6dca4ba64613978c3b0ec12cd7f2d9483445d9766b33d24de860b")
+sha256sums=("238350d5869c5ad77a7a0f9c1b9edb3f82ab115685a7a6a771a8b8f666883e29")
 
 package() {
     install -Dm755 mctl -t "$pkgdir/usr/bin"

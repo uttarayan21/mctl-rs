@@ -56,5 +56,5 @@ pub enum ErrorKind {
     DBusError(mpris::DBusError),
     MPRISError(mpris::FindingError),
     BaseDirectoriesError(xdg::BaseDirectoriesError),
-    UnknownOperationError,
+    UnknownOperation,
 }

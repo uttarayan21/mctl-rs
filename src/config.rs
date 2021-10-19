@@ -15,7 +15,7 @@ impl Default for Config {
         Self {
             mpd_port: 6600,
             mpd_host: String::from("localhost"),
-            priority: Player::MPD,
+            priority: Player::Mpd,
         }
     }
 }

@@ -16,8 +16,8 @@ arg_enum! {
 arg_enum! {
     #[derive(PartialEq,Debug)]
     pub enum ArgPlayer {
-        MPRIS,
-        MPD,
+        Mpris,
+        Mpd,
         Both,
     }
 }
