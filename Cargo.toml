@@ -1,4 +1,4 @@
-cargo-features = ["strip"]
+# cargo-features = ["strip"]
 [package]
 name = "mctl"
 version = "0.1.0"
@@ -22,5 +22,5 @@ xdg = "2.2.0"
 [build-dependencies]
 clap = "2.33.3"
 
-[profile.release]
-strip = "symbols"
+# [profile.release]
+# strip = "symbols"
