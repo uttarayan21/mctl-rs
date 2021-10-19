@@ -8,18 +8,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
+
     - name: Install dbus
       run: sudo apt-get install -y libdbus-1-dev pkg-config
+
     - name: Run tests
       run: cargo test --verbose
+
     - name: Build
       run: cargo build --verbose --release
+
+    - name: Strip
+      run: strip target/release/mctl
+
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
           LICENSE
-          target/mctl
+          target/release/mctl
           README.md
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
