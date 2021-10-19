@@ -1,8 +1,9 @@
 use crate::cli;
 use crate::config::Config;
 use crate::error::{Error, ErrorKind};
+use derive_more::Display;
 use std::{convert::TryFrom, str::FromStr};
-#[derive(Debug, Clone, Copy, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, Display, serde::Deserialize)]
 pub enum Player {
     MPD,
     MPRIS,
@@ -73,12 +74,12 @@ impl From<cli::ArgOperation> for Operation {
     }
 }
 
-#[derive(Debug)]
-pub enum State {
-    Playing,
-    Paused,
-    Stopped,
-}
+// #[derive(Debug)]
+// pub enum State {
+//     Playing,
+//     Paused,
+//     Stopped,
+// }
 
 #[derive(Debug)]
 pub struct PlayerInfo {
@@ -88,9 +89,28 @@ pub struct PlayerInfo {
     artists: Vec<String>,
 }
 
+impl std::fmt::Display for PlayerInfo {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Player: {}\n", self.kind)?;
+        write!(f, "Title: {}\n", self.title)?;
+        if self.artists.len() > 1 {
+            write!(f, "Artists: ")?;
+        } else {
+            write!(f, "Artist: ")?;
+        }
+        for (count, artist) in self.artists.iter().enumerate() {
+            if count != 0 {
+                write!(f, ", ")?
+            }
+            write!(f, "{}", artist)?;
+        }
+        Ok(())
+    }
+}
+
 impl TryFrom<&mut mpd::client::Client> for PlayerInfo {
     type Error = Error;
-    fn try_from(mut client: &mut mpd::client::Client) -> Result<Self, Error> {
+    fn try_from(client: &mut mpd::client::Client) -> Result<Self, Error> {
         let title = client
             .currentsong()?
             .unwrap_or_default()
@@ -108,7 +128,7 @@ impl TryFrom<&mut mpd::client::Client> for PlayerInfo {
 
 impl TryFrom<&mut mpris::Player<'_>> for PlayerInfo {
     type Error = Error;
-    fn try_from(mut client: &mut mpris::Player) -> Result<Self, Self::Error> {
+    fn try_from(client: &mut mpris::Player) -> Result<Self, Self::Error> {
         let metadata = client.get_metadata().unwrap();
         let title = metadata.title().unwrap_or_default().to_string();
         let artists = metadata.artists().unwrap_or(&Vec::new()).to_vec();
@@ -149,9 +169,9 @@ impl<'c> Control<'c> {
         };
         let running: Player = match (mpdstatus, mprisstatus) {
             (mpd::status::State::Play, true) => Player::Both,
-            (mpd::status::State::Play, _) => Player::MPD, // since both case is already covered first this should not include the both case.
+            (mpd::status::State::Play, false) => Player::MPD,
             (_, true) => Player::MPRIS,
-            (_, _) => Player::None,
+            (_, false) => Player::None,
         };
         Ok(running)
     }
@@ -198,10 +218,52 @@ impl<'c> Control<'c> {
         Ok(())
     }
 
-    pub fn next(&mut self) -> Result<(), Error> {
+    pub fn next(&mut self, player: Player) -> Result<(), Error> {
+        match player {
+            Player::MPD => {
+                if let Some(mpdclient) = &mut self.mpdclient {
+                    mpdclient.next()?;
+                }
+            }
+            Player::MPRIS => {
+                if let Some(mpristclient) = &mut self.mprisclient {
+                    mpristclient.next()?;
+                }
+            }
+            Player::Both => {
+                if let Some(mpdclient) = &mut self.mpdclient {
+                    mpdclient.next()?;
+                }
+                if let Some(mpristclient) = &mut self.mprisclient {
+                    mpristclient.next()?;
+                }
+            }
+            _ => (),
+        }
         Ok(())
     }
-    pub fn prev(&mut self) -> Result<(), Error> {
+    pub fn prev(&mut self, player: Player) -> Result<(), Error> {
+        match player {
+            Player::MPD => {
+                if let Some(mpdclient) = &mut self.mpdclient {
+                    mpdclient.prev()?;
+                }
+            }
+            Player::MPRIS => {
+                if let Some(mpristclient) = &mut self.mprisclient {
+                    mpristclient.previous()?;
+                }
+            }
+            Player::Both => {
+                if let Some(mpdclient) = &mut self.mpdclient {
+                    mpdclient.prev()?;
+                }
+                if let Some(mpristclient) = &mut self.mprisclient {
+                    mpristclient.previous()?;
+                }
+            }
+            _ => (),
+        }
         Ok(())
     }
     pub fn stop(&mut self) -> Result<(), Error> {
@@ -214,11 +276,26 @@ impl<'c> Control<'c> {
         Ok(())
     }
     pub fn status(&mut self, player: Player) -> Result<(), Error> {
-        if let Some(mpdclient) = &mut self.mpdclient {
-            println!("{:?}", PlayerInfo::try_from(mpdclient));
-        }
-        if let Some(mprisclient) = &mut self.mprisclient {
-            println!("{:?}", PlayerInfo::try_from(mprisclient));
+        match player {
+            Player::MPD => {
+                if let Some(mpdclient) = &mut self.mpdclient {
+                    println!("{}", PlayerInfo::try_from(mpdclient)?);
+                }
+            }
+            Player::MPRIS => {
+                if let Some(mprisclient) = &mut self.mprisclient {
+                    println!("{}", PlayerInfo::try_from(mprisclient)?);
+                }
+            }
+            Player::Both => {
+                if let Some(mprisclient) = &mut self.mprisclient {
+                    println!("{}", PlayerInfo::try_from(mprisclient)?);
+                }
+                if let Some(mpdclient) = &mut self.mpdclient {
+                    println!("{}", PlayerInfo::try_from(mpdclient)?);
+                }
+            }
+            _ => (),
         }
         Ok(())
     }
@@ -229,8 +306,8 @@ impl<'c> Control<'c> {
             Operation::Play => Ok(self.play(player)?),
             Operation::Pause => Ok(self.pause()?),
             Operation::Toggle => Ok(self.toggle()?),
-            Operation::Prev => Ok(self.prev()?),
-            Operation::Next => Ok(self.next()?),
+            Operation::Prev => Ok(self.prev(player)?),
+            Operation::Next => Ok(self.next(player)?),
             Operation::Stop => Ok(self.stop()?),
             Operation::Status => Ok(self.status(player)?),
             // _ => Ok(()),
