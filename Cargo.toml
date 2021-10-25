@@ -7,7 +7,7 @@ edition = "2018"
 description = "Control both mpd and mpris musicplayers with one command"
 homepage = "https://github.com/uttarayan21/mctl-rs"
 repository = "https://github.com/uttarayan21/mctl-rs"
-license = "LICENSE"
+license = "MIT"
 build = "build.rs"
 
 [dependencies]
