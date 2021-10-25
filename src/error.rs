@@ -1,5 +1,5 @@
 use derive_more::Display;
-use xdg::BaseDirectoriesError;
+// use xdg::BaseDirectoriesError;
 
 #[derive(Debug, Display)]
 #[display(fmt = "{}", kind)]
@@ -42,7 +42,7 @@ impl From<std::io::Error> for Error {
     }
 }
 
-impl From<BaseDirectoriesError> for Error {
+impl From<xdg::BaseDirectoriesError> for Error {
     fn from(error: xdg::BaseDirectoriesError) -> Self {
         Self::new(ErrorKind::BaseDirectoriesError(error))
     }
