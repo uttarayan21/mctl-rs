@@ -44,6 +44,12 @@ pub enum Operation {
     Status,
 }
 
+impl Default for Operation {
+    fn default() -> Self {
+        Self::Status
+    }
+}
+
 impl FromStr for Operation {
     type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {

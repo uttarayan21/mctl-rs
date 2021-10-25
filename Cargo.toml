@@ -1,7 +1,7 @@
 # cargo-features = ["strip"]
 [package]
 name = "mctl"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Uttarayan Mondal <uttarayan21@gmail.com>"]
 edition = "2018"
 description = "Control both mpd and mpris musicplayers with one command"

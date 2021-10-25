@@ -1,3 +1,4 @@
+name: Release
 on:
   push:
     tags:
@@ -21,13 +22,13 @@ jobs:
     - name: Strip
       run: strip target/release/mctl
 
+    - name: Compress
+      run: tar -czvf mctl-${GITHUB_REF#refs/*/}-linux.tar.gz README.md LICENSE -C target/release mctl
     - name: Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          LICENSE
-          target/release/mctl
-          README.md
+          mctl-${GITHUB_REF#refs/*/}-linux.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

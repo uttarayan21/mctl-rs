@@ -10,8 +10,8 @@ fn main() -> Result<(), Error> {
     let matches = cli::build_cli().get_matches();
     let operation: Operation = matches
         .value_of("operation")
-        .unwrap() // clap should already quit if the values don't match
-        .parse::<Operation>()?;
+        .and_then(|op| op.parse::<Operation>().ok())
+        .unwrap(); // clap should already quit if the values don't match;
 
     let mut control = control::Control::with_config(config).unwrap();
 

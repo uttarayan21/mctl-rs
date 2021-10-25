@@ -32,6 +32,7 @@ pub fn build_cli() -> clap::App<'static, 'static> {
                 .help("Specify the operation")
                 .required(true)
                 .possible_values(&ArgOperation::variants())
+                .default_value("Status")
                 .case_insensitive(true),
         )
         .arg(
