@@ -1,7 +1,7 @@
 # cargo-features = ["strip"]
 [package]
 name = "mctl"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["Uttarayan Mondal <uttarayan21@gmail.com>"]
 edition = "2018"
 description = "Control both mpd and mpris musicplayers with one command"
@@ -9,6 +9,7 @@ homepage = "https://github.com/uttarayan21/mctl-rs"
 repository = "https://github.com/uttarayan21/mctl-rs"
 license = "MIT"
 build = "build.rs"
+exclude = [".drone.yml", ".github/*"]
 
 [dependencies]
 clap = "2.33.3"
