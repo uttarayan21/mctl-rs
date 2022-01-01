@@ -3,6 +3,9 @@ use crate::config::Config;
 use crate::error::{Error, ErrorKind};
 use derive_more::Display;
 use std::{convert::TryFrom, str::FromStr};
+use mpd::State as MPDState;
+use mpris::PlaybackStatus as MPRISState;
+
 #[derive(Debug, Clone, Copy, Display, serde::Deserialize)]
 pub enum Player {
     Mpd,
@@ -87,18 +90,16 @@ pub enum State {
     Stopped,
 }
 
-use mpris::PlaybackStatus;
-impl From<PlaybackStatus> for State {
-    fn from(playback_status: mpris::PlaybackStatus) -> State {
+impl From<MPRISState> for State {
+    fn from(playback_status: MPRISState) -> State {
         match playback_status {
-            PlaybackStatus::Paused => State::Paused,
-            PlaybackStatus::Playing => State::Playing,
-            PlaybackStatus::Stopped => State::Stopped,
+            MPRISState::Paused => State::Paused,
+            MPRISState::Playing => State::Playing,
+            MPRISState::Stopped => State::Stopped,
         }
     }
 }
 
-use mpd::State as MPDState;
 impl From<MPDState> for State {
     fn from(playback_status: mpd::State) -> State {
         match playback_status {
@@ -118,7 +119,7 @@ pub struct PlayerInfo {
 }
 
 impl std::fmt::Display for PlayerInfo {
-   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Player: {}", self.kind)?;
         writeln!(f, "State: {}", self.state)?;
         writeln!(f, "Title: {}", self.title)?;
@@ -128,10 +129,10 @@ impl std::fmt::Display for PlayerInfo {
             write!(f, "Artist: ")?;
         }
         for (count, artist) in self.artists.iter().enumerate() {
+            write!(f, "{}", artist)?;
             if count != 0 {
                 write!(f, ", ")?
             }
-            write!(f, "{}", artist)?;
         }
         Ok(())
     }
