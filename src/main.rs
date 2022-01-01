@@ -15,12 +15,11 @@ fn main() -> Result<(), Error> {
 
     let mut control = control::Control::with_config(config).unwrap();
 
-    let player: Player;
-    if matches.is_present("player") {
-        player = matches.value_of("player").unwrap().parse::<Player>()?;
+    let player = if matches.is_present("player") {
+        matches.value_of("player").unwrap().parse::<Player>()?
     } else {
-        player = control.player()?;
-    }
+        control.player()?
+    };
 
     control.handle(operation, player)?;
     Ok(())

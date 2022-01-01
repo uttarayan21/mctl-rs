@@ -3,6 +3,9 @@ use crate::config::Config;
 use crate::error::{Error, ErrorKind};
 use derive_more::Display;
 use std::{convert::TryFrom, str::FromStr};
+use mpd::State as MPDState;
+use mpris::PlaybackStatus as MPRISState;
+
 #[derive(Debug, Clone, Copy, Display, serde::Deserialize)]
 pub enum Player {
     Mpd,
@@ -80,24 +83,45 @@ impl From<cli::ArgOperation> for Operation {
     }
 }
 
-// #[derive(Debug)]
-// pub enum State {
-//     Playing,
-//     Paused,
-//     Stopped,
-// }
+#[derive(Debug, Display)]
+pub enum State {
+    Playing,
+    Paused,
+    Stopped,
+}
+
+impl From<MPRISState> for State {
+    fn from(playback_status: MPRISState) -> State {
+        match playback_status {
+            MPRISState::Paused => State::Paused,
+            MPRISState::Playing => State::Playing,
+            MPRISState::Stopped => State::Stopped,
+        }
+    }
+}
+
+impl From<MPDState> for State {
+    fn from(playback_status: mpd::State) -> State {
+        match playback_status {
+            MPDState::Stop => State::Stopped,
+            MPDState::Pause => State::Paused,
+            MPDState::Play => State::Playing,
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct PlayerInfo {
     kind: Player,
     title: String,
-    // state: State,
     artists: Vec<String>,
+    state: State,
 }
 
 impl std::fmt::Display for PlayerInfo {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Player: {}", self.kind)?;
+        writeln!(f, "State: {}", self.state)?;
         writeln!(f, "Title: {}", self.title)?;
         if self.artists.len() > 1 {
             write!(f, "Artists: ")?;
@@ -105,10 +129,10 @@ impl std::fmt::Display for PlayerInfo {
             write!(f, "Artist: ")?;
         }
         for (count, artist) in self.artists.iter().enumerate() {
+            write!(f, "{}", artist)?;
             if count != 0 {
                 write!(f, ", ")?
             }
-            write!(f, "{}", artist)?;
         }
         Ok(())
     }
@@ -124,10 +148,17 @@ impl TryFrom<&mut mpd::client::Client> for PlayerInfo {
             .unwrap_or_default();
 
         let artists = Vec::new();
+        let state = match client.status().unwrap_or_default().state {
+            MPDState::Play => State::Playing,
+            MPDState::Pause => State::Paused,
+            MPDState::Stop => State::Stopped,
+        };
+
         Ok(Self {
             kind: Player::Mpd,
             title,
             artists,
+            state,
         })
     }
 }
@@ -138,10 +169,12 @@ impl TryFrom<&mut mpris::Player<'_>> for PlayerInfo {
         let metadata = client.get_metadata().unwrap();
         let title = metadata.title().unwrap_or_default().to_string();
         let artists = metadata.artists().unwrap_or(&Vec::new()).to_vec();
+        let state = State::from(client.get_playback_status().unwrap());
         Ok(Self {
             kind: Player::Mpris,
             title,
             artists,
+            state,
         })
     }
 }
@@ -165,6 +198,7 @@ impl<'c> Control<'c> {
             priority: config.priority,
         })
     }
+
     pub fn player(&mut self) -> Result<Player, Error> {
         let mpdstatus = match &mut self.mpdclient {
             Some(c) => c.status()?.state,
@@ -182,6 +216,7 @@ impl<'c> Control<'c> {
         };
         Ok(running)
     }
+
     pub fn play(&mut self, player: Player) -> Result<(), Error> {
         match player {
             Player::Mpd => {
@@ -215,6 +250,7 @@ impl<'c> Control<'c> {
         }
         Ok(())
     }
+
     pub fn toggle(&mut self) -> Result<(), Error> {
         if let Some(mpdclient) = &mut self.mpdclient {
             mpdclient.toggle_pause()?;
@@ -249,6 +285,7 @@ impl<'c> Control<'c> {
         }
         Ok(())
     }
+
     pub fn prev(&mut self, player: Player) -> Result<(), Error> {
         match player {
             Player::Mpd => {
@@ -273,6 +310,7 @@ impl<'c> Control<'c> {
         }
         Ok(())
     }
+
     pub fn stop(&mut self) -> Result<(), Error> {
         if let Some(mpdclient) = &mut self.mpdclient {
             mpdclient.stop()?;
@@ -282,6 +320,7 @@ impl<'c> Control<'c> {
         }
         Ok(())
     }
+
     pub fn status(&mut self, player: Player) -> Result<(), Error> {
         match player {
             Player::Mpd => {
@@ -306,8 +345,8 @@ impl<'c> Control<'c> {
         }
         Ok(())
     }
+
     pub fn handle(&mut self, operation: Operation, player: Player) -> Result<(), Error> {
-        // let player = self.status()?;
         println!("{:?}", player);
         match operation {
             Operation::Play => Ok(self.play(player)?),
@@ -317,7 +356,6 @@ impl<'c> Control<'c> {
             Operation::Next => Ok(self.next(player)?),
             Operation::Stop => Ok(self.stop()?),
             Operation::Status => Ok(self.status(player)?),
-            // _ => Ok(()),
         }
     }
 }
